@@ -35,7 +35,7 @@ public class MainActivity extends Activity implements RongRTCEventsListener, Vie
     private static final String TAG = "MainActivity";
     private RongRTCVideoView localVideoView;
     private LinearLayout remoteContainer;
-    private String mRoomId = "quickStartDemoRoom";
+    private String mRoomId = "RongCloudRTCTest";
     private RongRTCRoom mRongRTCRoom;
     private RongRTCLocalUser mLocalUser;
     private Button button;
