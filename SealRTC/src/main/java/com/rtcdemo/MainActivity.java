@@ -1,8 +1,10 @@
 package com.rtcdemo;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
+import android.media.AudioManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -41,6 +43,7 @@ public class MainActivity extends Activity implements RongRTCEventsListener, Vie
     private Button button;
     private RelativeLayout localContainer;
     private TextView exchangeView;
+    private AudioManager audioManager;
     /**
      * 记录点击切换屏幕方向时应使用的值。
      */
@@ -52,6 +55,7 @@ public class MainActivity extends Activity implements RongRTCEventsListener, Vie
         setContentView(R.layout.main_activity_layout);
         initView();
         joinRoom();
+        audioManager =  (AudioManager) getSystemService(Context.AUDIO_SERVICE);
     }
 
     private void initView() {
@@ -135,7 +139,7 @@ public class MainActivity extends Activity implements RongRTCEventsListener, Vie
 
     private void removeListener() {
         if (mRongRTCRoom != null) {
-            mRongRTCRoom.unRegisterEventsListener(this);
+            mRongRTCRoom.unregisterEventsListener(this);
         }
     }
 
@@ -263,7 +267,7 @@ public class MainActivity extends Activity implements RongRTCEventsListener, Vie
 
     @Override
     public void onUserJoined(RongRTCRemoteUser rongRTCRemoteUser) {
-
+        Log.d(TAG, "audio mode = " + audioManager.getMode());
     }
 
     @Override
