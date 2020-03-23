@@ -18,6 +18,7 @@ import android.widget.Toast;
 import java.util.List;
 
 import cn.rongcloud.rtc.RTCErrorCode;
+import cn.rongcloud.rtc.RongRTCConfig;
 import cn.rongcloud.rtc.RongRTCEngine;
 import cn.rongcloud.rtc.callback.JoinRoomUICallBack;
 import cn.rongcloud.rtc.callback.RongRTCResultUICallBack;
@@ -53,6 +54,7 @@ public class MainActivity extends Activity implements RongRTCEventsListener, Vie
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main_activity_layout);
         initView();
+        initConfig();
         joinRoom();
     }
 
@@ -76,6 +78,25 @@ public class MainActivity extends Activity implements RongRTCEventsListener, Vie
                 setRequestedOrientation(orientationValue);
             }
         });
+    }
+
+    /*
+     * config配置有很多接口，对应很多配置，通常情况下不需要特殊配置
+     * 暴露很多config参数主要是满足硬件OEM厂商的定制需求
+     */
+    private void initConfig() {
+        /*
+         * configBuilder内部是单例，可以new多次
+         * configBuilder直接调用配置方法即可完成配置，不需要调用一下build()方法
+         */
+        RongRTCConfig.Builder configBuilder = new RongRTCConfig.Builder();
+        /*
+         * 设置建立 Https 连接时，是否使用自签证书。
+         * 公有云用户无需调用此方法，私有云用户使用自签证书时调用此方法设置
+         */
+        //configBuilder.enableHttpsSelfCertificate(true);
+        //视频宽高默认是480x640，帧率是15 fps
+        configBuilder.setVideoProfile(RongRTCConfig.RongRTCVideoProfile.RONGRTC_VIDEO_PROFILE_480P_15f_1);
     }
 
     private void addToLocalContainer(RongRTCVideoView videoView) {
