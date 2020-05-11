@@ -1,11 +1,12 @@
 package com.rtcdemo;
 
 import android.app.Activity;
-import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
-import android.media.AudioManager;
+import android.opengl.Matrix;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.HandlerThread;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,6 +16,13 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import cn.rongcloud.rtc.core.TextureBufferImpl;
+import cn.rongcloud.rtc.core.VideoFrame;
+import cn.rongcloud.rtc.core.YuvConverter;
+import cn.rongcloud.rtc.engine.view.RongRTCVideoViewManager;
+import cn.rongcloud.rtc.events.ILocalVideoFrameListener;
+import cn.rongcloud.rtc.events.RTCVideoFrame;
+import io.rong.imlib.RongIMClient;
 import java.util.List;
 
 import cn.rongcloud.rtc.RTCErrorCode;
@@ -34,9 +42,11 @@ import cn.rongcloud.rtc.user.RongRTCRemoteUser;
 import cn.rongcloud.rtc.utils.FinLog;
 import io.rong.imlib.model.Message;
 
-public class MainActivity extends Activity implements RongRTCEventsListener, View.OnClickListener {
+public class MainActivity extends Activity implements RongRTCEventsListener, View.OnClickListener,
+    ILocalVideoFrameListener {
     private static final String TAG = "MainActivity";
     private RongRTCVideoView localVideoView;
+    private RongRTCVideoView localVideoViewPlus;
     private LinearLayout remoteContainer;
     private String mRoomId = "RongCloudRTCTest";
     private RongRTCRoom mRongRTCRoom;
@@ -49,6 +59,9 @@ public class MainActivity extends Activity implements RongRTCEventsListener, Vie
      */
     int orientationValue = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
 
+    private YuvConverter yuvConverter =  new YuvConverter();
+    private Handler handler;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -56,6 +69,10 @@ public class MainActivity extends Activity implements RongRTCEventsListener, Vie
         initView();
         initConfig();
         joinRoom();
+        HandlerThread thread = new HandlerThread("Thread_local_render_plus");
+        thread.start();
+        handler = new Handler(thread.getLooper());
+        RongRTCCapture.getInstance().setLocalVideoFrameListener(true,this);
     }
 
     private void initView() {
@@ -78,6 +95,7 @@ public class MainActivity extends Activity implements RongRTCEventsListener, Vie
                 setRequestedOrientation(orientationValue);
             }
         });
+
     }
 
     /*
@@ -139,6 +157,8 @@ public class MainActivity extends Activity implements RongRTCEventsListener, Vie
                 addRemoteUsersView();
                 subscribeAll();                                          //订阅资源
                 publishDefaultStream();                                  //发布资源
+                //有客户有渲染2个localView的需求，增加这个功能，正常测试时，把这个方法调用注释即可
+                addNewLocalViewPlus();
             }
 
             @Override
@@ -166,6 +186,12 @@ public class MainActivity extends Activity implements RongRTCEventsListener, Vie
     protected void onDestroy() {
         super.onDestroy();
         removeListener();
+        if (handler!=null){
+            handler.getLooper().quit();
+        }
+        if (yuvConverter!=null) {
+            yuvConverter.release();
+        }
         RongRTCEngine.getInstance().quitRoom(mRoomId, new RongRTCResultUICallBack() {
             @Override
             public void onUiSuccess() {
@@ -367,4 +393,42 @@ public class MainActivity extends Activity implements RongRTCEventsListener, Vie
             }
         });
     }
+
+    @Override
+    public RTCVideoFrame processVideoFrame(RTCVideoFrame rtcVideoFrame) {
+        if (localVideoViewPlus != null) {
+            TextureBufferImpl buffer = new TextureBufferImpl(rtcVideoFrame.getWidth(),
+                rtcVideoFrame.getHeight(), VideoFrame.TextureBuffer.Type.RGB,
+                rtcVideoFrame.getTextureId(),
+                (android.graphics.Matrix) null,
+                handler, yuvConverter, new Runnable() {
+                @Override
+                public void run() {
+
+                }
+            });
+            Matrix.setIdentityM(buffer.getOriginalMatrix(), 0);
+            buffer.setTransformMatrix(
+                RendererCommon.convertMatrixToAndroidGraphicsMatrix(
+                    buffer.getOriginalMatrix()));
+            VideoFrame frame = new VideoFrame(buffer, rtcVideoFrame.getRotation(),
+                rtcVideoFrame.getTimestamp());
+            localVideoViewPlus.onFrame(frame);
+        }
+        return rtcVideoFrame;
+    }
+
+    private void addNewLocalViewPlus() {
+        localVideoViewPlus = RongRTCEngine.getInstance().createVideoView(this);
+        //设置视频显示完整内容
+        localVideoViewPlus.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FIT);
+        localVideoViewPlus.setZOrderMediaOverlay(true);
+        localVideoViewPlus.setZOrderOnTop(true);
+        localVideoViewPlus.init(RongRTCVideoViewManager.getInstance().getBaseContext(),null,
+            RongIMClient.getInstance().getCurrentUserId());
+        remoteContainer.addView(localVideoViewPlus,
+            new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT));
+    }
+
 }
