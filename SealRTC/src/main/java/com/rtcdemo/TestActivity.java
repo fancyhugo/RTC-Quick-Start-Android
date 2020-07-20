@@ -81,6 +81,13 @@ public class TestActivity extends Activity {
     //默认为false，私有部署开发者运维配置的签名证书为自签证书时需要设置为true
     //true时会绕过https证书校验过程
     configBuilder.enableHttpsSelfCertificate(true);
+    //设置硬件编码解码，默认true
+    configBuilder.enableHardWareEncode(true);
+    configBuilder.enableHardWareDecode(true);
+    // iOS 对 Android 发送的 highProfile 支持不太好，目前SDK已把这个值设置为false
+    configBuilder.enableHardWareEncodeHighProfile(false);
+    //默认是true
+    configBuilder.enableVideoTexture(true);
     RongRTCEngine.getInstance().joinRoom("roomId", new JoinRoomUICallBack() {
       @Override
       protected void onUiSuccess(RongRTCRoom rongRTCRoom) {
