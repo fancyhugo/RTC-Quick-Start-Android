@@ -29,6 +29,7 @@ import cn.rongcloud.rtc.base.RCRTCParamsType.RCRTCVideoFps;
 import cn.rongcloud.rtc.base.RCRTCParamsType.RCRTCVideoResolution;
 import cn.rongcloud.rtc.base.RCRTCVideoFrame;
 import cn.rongcloud.rtc.base.RTCErrorCode;
+import io.rong.common.utils.SSLUtils;
 import io.rong.imlib.RongIMClient;
 import io.rong.imlib.RongIMClient.ConnectCallback;
 import io.rong.imlib.RongIMClient.ConnectionErrorCode;
@@ -39,6 +40,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import com.rtcdemo.R;
+import javax.net.ssl.SSLContext;
 
 
 public class TestActivity extends Activity {
@@ -48,8 +50,17 @@ public class TestActivity extends Activity {
   protected void onCreate(@Nullable Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_main);
+    //配置 https 签名证书校验实现，注意，需要在融云IM init 方法之前调用
+    //因为包含证书忽略的代码，上架google应用商店被驳回，私有云证书校验的代码需要由 app 层进行设置
+    configHttpsCertificate();
     test();
   }
+
+  private void  configHttpsCertificate(){
+    SSLUtils.setSSLContext(AppSSLUtils.getSSLContext());
+    SSLUtils.setHostnameVerifier(AppSSLUtils.DO_NOT_VERIFY);
+  }
+
 
   private void test() {
     RongIMClient.init(getApplication());
@@ -78,9 +89,8 @@ public class TestActivity extends Activity {
     //设置硬件编码解码，默认true
     configBuilder.enableHardwareDecoder(true);
     configBuilder.enableHardwareEncoder(true);
-    //默认为false，私有部署开发者运维配置的签名证书为自签证书时需要设置为true
-    //true时会绕过https证书校验过程
-    configBuilder.enableHttpsSelfCertificate(true);
+    //4.0.1版本这个配置已去掉
+    //configBuilder.enableHttpsSelfCertificate(true);
     //默认true,如果设置为false，网络异常rtcPing 连续4次失败时会主动退出房间，callLib 会设置false
     configBuilder.enableAutoReconnect(true);
     // iOS 对 Android 发送的 highProfile 支持不太好，目前SDK已把这个值设置为false
